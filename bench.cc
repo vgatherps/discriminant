@@ -1,5 +1,6 @@
 #include "discriminator.hh"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -62,6 +63,23 @@ vector<uint8_t> build_message() {
     return data;
 }
 
+__attribute__ ((noinline)) int branch_test(const std::vector<uint8_t>& test) {
+    if (test[A_OFFSET] == 'A') {
+        if (test[B_OFFSET] == 'B') {
+            if (test[C_OFFSET] == 'C') {
+                return 1;
+            }
+        }
+    } else if (test[B_OFFSET] == 'X') {
+        if (test[C_OFFSET] == 'Y') {
+            return 2;
+        }
+    } else if (test[C_OFFSET] == 'Z') {
+        return 3;
+    }
+    return -1;
+}
+
 void mfence() {
     __asm volatile("mfence" :::"memory");
 }
@@ -114,7 +132,11 @@ int main() {
         make_constraint(C_OFFSET, {'C', 'A', 'B'}, {true, true, false}),
     });
 
+
     auto val = build_message();
+    assert(val[A_OFFSET] == 'A');
+    assert(val[B_OFFSET] == 'B');
+    assert(val[C_OFFSET] == 'C');
 
     auto dummy = [](){};
     auto clear_val = [&]() {
@@ -137,7 +159,9 @@ int main() {
     
     bench("fast with length", fast_check, dummy);
     bench("fast without length checks", fast_check_nolen, dummy);
+    bench("optimal branching", fast_check_nolen, dummy);
 
     bench("fast with length nocache", fast_check, clear_val);
-    bench("fast without length checks", fast_check_nolen, clear_val);
+    bench("fast without length checks nocache", fast_check_nolen, clear_val);
+    bench("optimal branching nocache", fast_check_nolen, clear_val);
 }
