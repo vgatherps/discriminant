@@ -65,16 +65,10 @@ vector<uint8_t> build_message() {
 
 __attribute__ ((noinline)) int branch_test(const std::vector<uint8_t>& test) {
     if (test[A_OFFSET] == 'A') {
-        if (test[B_OFFSET] == 'B') {
-            if (test[C_OFFSET] == 'C') {
-                return 1;
-            }
-        }
-    } else if (test[B_OFFSET] == 'X') {
-        if (test[C_OFFSET] == 'Y') {
-            return 2;
-        }
-    } else if (test[C_OFFSET] == 'Z') {
+        return 1;
+    } else if (test[B_OFFSET] == 'B') {
+        return 2;
+    } else if (test[C_OFFSET] == 'C') {
         return 3;
     }
     return -1;
@@ -134,6 +128,7 @@ int main() {
 
 
     auto val = build_message();
+
     assert(val[A_OFFSET] == 'A');
     assert(val[B_OFFSET] == 'B');
     assert(val[C_OFFSET] == 'C');
@@ -152,6 +147,9 @@ int main() {
     auto fast_check_nolen = [&]() {
         black_hole(check_byte_buffer(val.data(), msg_constraints));
     };
+    auto brancher = [&](){
+        black_hole(branch_test(val));
+    };
 
     cout << "Message contains " << val.size() - 1 << " bytes" << endl;
 
@@ -159,9 +157,9 @@ int main() {
     
     bench("fast with length", fast_check, dummy);
     bench("fast without length checks", fast_check_nolen, dummy);
-    bench("optimal branching", fast_check_nolen, dummy);
+    bench("optimal branching", brancher, dummy);
 
     bench("fast with length nocache", fast_check, clear_val);
     bench("fast without length checks nocache", fast_check_nolen, clear_val);
-    bench("optimal branching nocache", fast_check_nolen, clear_val);
+    bench("optimal branching nocache", brancher, clear_val);
 }
